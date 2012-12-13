@@ -1,0 +1,29 @@
+{
+  "name": "todoAppModule",
+  "type": "front",
+  "description": "Sample application-centered theme.",
+  "version": "0.1.0",
+  "author": "Vinod Kulkarni <vinod.kulkarni@gmail.com>",
+  "layouts": 
+  {
+     "main": {
+        "layout": {
+           "template": "main.html",
+           "sections": {
+            "header": {"template": "header.html"},
+            "body": {"template": "body.html"},
+            "sidebar": {"template": "sidebar.html"},
+            "footer": {"template": "footer.html"}
+           },
+           "modules": {
+              "user": {
+                 "login": "templates/modules/user/login.html"
+              }
+           }
+        }
+     }
+  }
+}
+
+
+

@@ -1,0 +1,29 @@
+<h2>Your TODO list <small>// <%= user_name %></small> </h2>
+<hrule/>
+
+<form class="form-search" action="<%= appUrl('/create') %>" method="post" accept-charset="utf-8">
+      <input class="input-large search-query" style="width: 350px;" type="text" name="content" placeholder="Add a TODO item..."/>
+      <button class="btn" type="text">Add</button>
+</form>
+
+<% todos.forEach( function(todo){ %>
+
+<h4 class="item">
+<% if (todo._id == current ) { %>
+
+    <form class="update-form" action="<%= appUrl('/update/', todo._id) %>" method="post" accept-charset="utf-8">
+       <input class="input-large search-query update-input" style="width: 350px;" type="text" name="content" value="<%= todo.content %>" />
+    </form>
+
+<% } else { %>
+
+    <a class="update-link" href="<%= appUrl('/edit/', todo._id) %>" title="Update this todo item"><%= todo.content %></a>
+
+    <a class="btn btn-warning del-btn-edit" href="<%= appUrl('/destroy/', todo._id) %>" title="Delete this todo item">Delete</a>
+
+<% } %>
+</h4>
+
+<% } ); %>
+
+

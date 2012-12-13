@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- Customizing the theme for the module. -->
+  <head>
+    <meta charset="utf-8">
+    <meta name="description" content="put your site description here">
+    <meta name="keywords" content="put your site keywords here">
+    <title>Calipso TODO demo</title>
+    <link href='http://fonts.googleapis.com/css?family=Englebert' rel='stylesheet' type='text/css'>
+    <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
+    <link href="/css/todoapp.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      <div class="row">
+        <div class="span1"> </div>
+        <div class="span8">
+           <header class="jumbotron subhead" id="overview">
+              <%- header %>
+           </header>
+        </div>
+     </div> <!-- header row -->
+    
+      <!-- three column layout --> 
+      <div class="row"> <!-- middle area -->
+         <div class="span1">
+         </div>
+         <div class="span6">
+            <div id="body">
+              <!--PAGE_BODY_START-->
+              <%- body %>
+              <!--PAGE_BODY_END-->
+            </div>
+         </div>
+         <div class="span2">
+              <%- sidebar %>
+         </div>
+      </div> <!-- middle area -->
+
+      <div class="row" id="footer"> <!-- footer area -->
+        <div class="span1"/>
+        <div class="span8"/>
+           <%- footer %>
+        </div>
+     </div> <!-- footer area -->
+   </div> <!-- container -->
+  </body>
+</html>
