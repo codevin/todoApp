@@ -34,7 +34,6 @@ _module.init=function(module,calipsoApp,next) {
    // TODO: Load app templates, which might be in separate directory.
    // The module executing this is actually our app i.e. 'this'.
    var app=this;
-debugger;
    app.appInit();
    calipso.lib.step(
       function defineRoutes() {
@@ -107,15 +106,17 @@ function renderCompiledTemplate(tmpl, options)
  * Render all sections in the layout, with their respective blocks.
  * Use 'all' to denote all blocks.
  */
-function renderSections(req, res, layout, app_res, next)
+function renderSections(req, res, app_res, next)
 {
-   var layoutConfig=calipso.theme.config.layouts[layout];
-   if(! (layoutConfig && layoutConfig.layout 
-                      && layoutConfig.layout.sections)) {
-      throw("Error getting layout sections from theme layout array."+layout); 
+   // Theme should have been set using res.layout when you come here.
+   var layout=getThemeLayout(res.layout);
+   if (! layout) {
+      layout=getThemeLayout('main');
+      throw("renderSections(): Layout not defined : "+layout_name); 
    }
+
    var sections=[];
-   for(section in layoutConfig.layout.sections) {
+   for(section in layout.sections) {
       sections.push(section);
    }
    var sectionIterator=function(section, callback) {
@@ -169,11 +170,16 @@ _module.routeWrapper=function(req, res, template, block, next) {
             var content="";
             section=section || 'all'; // show all contents by default.
             this._stack.forEach(function(i) { 
-               if( (section == 'all') || (section == i.section) ) {
-                  content += "<!-- render: section=" + section +"-->" 
+                  if( (section == 'all') || (section == i.section) ) {
+                        if ( section == 'ajaxbody' ) {
+                           // No comment decorations for ajaxbody section.
+                           content += i.output; 
+                        } else {
+                           content += "<!-- render: section=" + section +"-->" 
                              + i.output 
                              + "<!-- render: end -->";
-               }
+                        }
+                  }
             });
             return(content);
         },
@@ -194,17 +200,31 @@ _module.routeWrapper=function(req, res, template, block, next) {
 
         var redirect=app_res.hasRedirect();
         if(err) {
-           res.layout=app_res.layout || 'main';
            calipso.theme.renderItem(req, res, err, 'content', {}, next); 
+
         } else if ( redirect ) {
            res.redirect(_module._baseUrl + redirect);
+
         } else {
-           res.layout='main';
+debugger;
+           res.layout=app_res.layout || 'main';
            // populate all sections
-           renderSections(req, res, res.layout, app_res, next);
+           renderSections(req, res, app_res, next);
            // var content=app_res.content('body') || "No Output. :-(";
            // calipso.theme.renderItem(req, res, content, 'body', {}, next); 
         }
     });
 }
+
+
+function getThemeLayout(layout)
+{
+   var layoutConfig=calipso.theme.config.layouts[layout];
+
+   if(! (layoutConfig && layoutConfig.layout && layoutConfig.layout.sections)) {
+      return null; 
+   }
+   return(layoutConfig.layout);
+}
+
 

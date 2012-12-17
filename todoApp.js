@@ -48,10 +48,11 @@ todoApp.appInit=function() {
        '/create': { post: todoApp.create },
        '/destroy/:id': { get: todoApp.destroy },
        '/edit/:id': { get: todoApp.edit },
-       '/update/:id': { post: todoApp.update }
+       '/update/:id': { post: todoApp.update },
+       '/ajax/:id': { get: todoApp.ajax}
  }).configure({
         before:function(){
-           this.res.layout='main';
+           this.res.layout='todo-main';
            this.Todo=Todo;
            this.res.addBlock('user', 'user.login');
            this.res.render('todo-sidebar', {}, 'sidebar');
@@ -169,4 +170,12 @@ todoApp.update = function(id){
     });
   });
 };
+
+todoApp.ajax = function(id) 
+{
+  this.res.layout='todo-ajax'; 
+  this.res.render("Get milk\nThis is second todo\nGet some more milk.\n", {}, 'ajaxbody');
+  this.next();
+}
+
 

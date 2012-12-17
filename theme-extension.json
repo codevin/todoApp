@@ -6,9 +6,9 @@
   "author": "Vinod Kulkarni <vinod.kulkarni@gmail.com>",
   "layouts": 
   {
-     "main": {
+     "todo-main": {
         "layout": {
-           "template": "main.html",
+           "template": "todo-main-layout.html",
            "sections": {
             "header": {"template": "header.html"},
             "body": {"template": "body.html"},
@@ -21,7 +21,15 @@
               }
            }
         }
-     }
+     },
+     "todo-ajax": {
+        "layout": {
+           "template": "todo-ajax-layout.html",
+           "sections": {
+            "ajaxbody": {"template": "ajaxbody.html"}
+            }
+         }
+     } 
   }
 }
 
