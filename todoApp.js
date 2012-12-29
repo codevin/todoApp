@@ -22,7 +22,7 @@ module.exports = todoApp = {};
 todoApp.baseName='todo';
 
 // Register this moduleApp with calipso, to manage this space. 
-var _module=require('./_module.js').register(todoApp, '/todo', ['user']);
+var _module=require('./framework/_module.js').register(todoApp, '/todo', ['user']);
 
 /*
  * Methods are executed in the context of router object because of 
@@ -34,6 +34,9 @@ var router;
 
 
 todoApp.appInit=function() {
+
+// Basic TODO, part 1.
+// Access this using /todo. 
     var mongoose = require('mongoose');
     var db=mongoose.connect( 'mongodb://localhost/todoApp' );
     var schemaTodo = new mongoose.Schema({
@@ -41,15 +44,38 @@ todoApp.appInit=function() {
        content    : String,
        updated_at : Date
     });
-    var Todo=db.model( 'todoApp', schemaTodo);
+    var Todo=db.model( 'Todo', schemaTodo);
+
+
+// Part 2: Manage Shared TODOs, under /todo/shared.
+// A user can create a sharelist, and create the TODO under that sharelist. 
+// In which case, they become visible to all those shared with, and they can view/modify/delete them.
+// Note how the Models and Views Framework helps in these activities.
+    var sharelist = new mongoose.Schema({
+         name: String,
+         owner: String, // Who owns it.
+         sharedWith: [String], // Shared with.
+    });
+    var Sharelist=db.model('Sharelist', schemaTodo);
+
+
 
     router=new director.http.Router({
+       /* Part 1, '/todo/...'  */
        '/': { get: todoApp.index },
        '/create': { post: todoApp.create },
        '/destroy/:id': { get: todoApp.destroy },
        '/edit/:id': { get: todoApp.edit },
        '/update/:id': { post: todoApp.update },
-       '/ajax/:id': { get: todoApp.ajax}
+       '/ajax/:id': { get: todoApp.ajax},  // This is just for example.
+
+       /* Part 2, '/todo/shared/...' */
+       '/shared/': { get: sharedTodo.index },  // View TODOs as part of shared lists. 
+       '/shared/create': { post: sharedTodo.create }, // Create a shared todo item. 
+       '/shared/destroy/:id': { get: sharedTodo.destroy }, //  
+       '/shared/edit/:id': { get: sharedTodo.edit }, // Edit a shared todo item.
+       '/shared/update/:id': { post: sharedTodo.update } // Update a shared todo item.
+
  }).configure({
         before:function(){
            this.res.layout='todo-main';

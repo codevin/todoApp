@@ -10,5 +10,8 @@
   },
   "dependencies": {
     "director": "1.1.8",
+    "mongoose": "3.5.x",
+    "mongoose-schema-extend": "0.1.x"
   },
 }
+

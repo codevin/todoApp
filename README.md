@@ -6,14 +6,16 @@ It is possible to create your app from scratch, and leverage various components 
 ## Running this demo
 1. Install calipso and ensure that it works. (See calipso's Readme.)
 2. In modules/downloaded, do 'git clone https://github.com/codevin/todoApp.git'
-3. In calipso's UI, login as admin and enable todoApp as one of the modules.
-4. Now run calipso, and access: http://your.calipso.url/todo.  
+3. In the same directory, do 'npm install' to install dependent modules.
+4. In calipso's UI, login as admin and enable todoApp as one of the modules.
+5. Now run calipso, and access: http://your.calipso.url/todo.  And for extended version of the application, try http://your.calipso.url/todo/shared.
+
 
 TODO: 
 1. Directly install 'calipsoApp' which will be application blueprint rather than CMS.
 2. Configure '/' to belong to application, rather than calipso. 
 
-## App blueprint - Modules used
+## Modules Dependencies - Managing routing etc. 
 
 Flatiron <a href="https://github.com/flatiron/director">director</a> is used as routine engine in ToDo app.  
 
