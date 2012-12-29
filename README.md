@@ -25,13 +25,12 @@ Within your application, you
 
 ## Writing new App 
 
-1. Rename the module directory to your 
+Rename this module directory to your app's name. You would have to make changes to the following files. Easiest way is to search for 'todoApp' and change that string.
 
+* package.json - Rename the module to your app's name.
+* theme-extension.json  - Rename theme to your app's name.
 
-
-
-
-Referencing modules from within the templates
+## Referencing modules from within the templates
 
 You should do this: 
     // this refers to router object.

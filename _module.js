@@ -145,7 +145,8 @@ _module.routeWrapper=function(req, res, template, block, next) {
           body: req.body,
           httpVersion: req.httpVersion,
           session: req.session,
-          helpers: req.helpers
+          helpers: req.helpers,
+          params: req.moduleParams
       };
       var app_res= {
         _stack: [],
