@@ -41,3 +41,14 @@ And within the template, you can reference the registered block as:
     <%- _module_user_login %> 
 
 
+## Ajax calls
+
+For ajax calls, we use a special layout, and a special section within that layout. Add this code somewhere in the route serving path to send back ajax results:
+
+   this.res.layout='todo-ajax';  // choose ajax layout.
+   this.res.render(tmpl, tmpl_results, 'ajaxbody'); // Use 'ajaxbody' as section to render.
+   this.next();
+
+
+
+
