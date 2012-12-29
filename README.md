@@ -30,6 +30,13 @@ Rename this module directory to your app's name. You would have to make changes 
 * package.json - Rename the module to your app's name.
 * theme-extension.json  - Rename theme to your app's name.
 
+
+## Using render()
+
+Use 'this.res.render(template, results [, section]);'  to render a template (found within templates/ directory). You can also provide section as an option. This section should be defined in the layout. By default, the section used is 'body'. 
+
+Render can be used multiple times within the single request. All the outputs are simply appended to the section. This is useful, for example, when you want to publish a error partial along with other body portions. 
+
 ## Referencing modules from within the templates
 
 You should do this: 
@@ -50,5 +57,18 @@ For ajax calls, we use a special layout, and a special section within that layou
    this.next();
 
 
+## Partial templates support - Build large templates from small ones 
+
+Partial templates will help you organize and reuse the template segments. For example, a todo item rendering can be put in a partial, and called from list display template. 
+
+We support these only for EJS templates for now.
+
+Partial templates are called by using the following call within the EJS templates:
+ 
+    <%- partial('todo-item-partial',{item:item})  %>
+
+Note that the partials usually product HTML, so you need to use "-" modifier for template rendering.
+
+Also, note that partials can get recursive. The code has checks to ensure that you can only recurse to 3 levels only. You can always modify the code in _module.js.
 
 
