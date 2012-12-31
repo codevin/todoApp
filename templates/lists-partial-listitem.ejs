@@ -1,0 +1,17 @@
+<%
+/*
+  Partial: Show one list item. 
+  Params: 
+      listitem,  // See schema.
+      url_href  // (i.e. what link to use when you click and item.).
+*/
+
+%>
+
+<h4 class="item">
+    <a class="update-link" href="<%= url_href %>" title="Click the list to edit"><%= listitem.name %></a>
+    <div>Users: <%= listitem.users %></div>
+    <a class="btn btn-warning del-btn-edit" href="<%= appUrl('/lists/remove/', listitem._id) %>" title="Delete this list.">Delete</a>
+
+</h4>
+

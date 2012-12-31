@@ -1,0 +1,16 @@
+
+<div>Message Level: <%= level %> 
+
+<div>Message: <%= message %> </div>
+
+<% if (url1) { %>
+<a href="<%- appUrl(url1.a) %>"><%= url1.text %></a> 
+<% } %>
+
+<% if (url2) { %>
+<a href="<%- appUrl(url2.a) %>"><%= url2.text %></a> 
+<% } %>
+
+<% if (url3) { %>
+<a href="<%- appUrl(url3.a) %>"><%= url3.text %></a> 
+<% } %>

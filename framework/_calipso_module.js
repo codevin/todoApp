@@ -6,10 +6,10 @@ var rootpath = process.cwd() + '/',
   url = require('url'),
   calipso = require(path.join(rootpath, "/lib/calipso"));
 
-var _module = module.exports = function() {}
+var _calipso_module = module.exports = function() {}
 
    // Called only during loading of this app, to register with calipso.
-_module.register=function(app, baseUrl, depends, routeOptions) {
+_calipso_module.register=function(app, baseUrl, depends, routeOptions) {
 
    if( baseUrl == undefined) throw "App needs baseURL '/app' to be registered.";
 
@@ -20,17 +20,17 @@ _module.register=function(app, baseUrl, depends, routeOptions) {
    app.routeOptions=routeOptions;
 
    // And store reference of app in the module.
-   _module._app=app;
-   _module._baseUrl=baseUrl;
+   _calipso_module._app=app;
+   _calipso_module._baseUrl=baseUrl;
    // And initialize some of the variables of the module from the app. 
 };
 
-_module.route=function(req,res,module,calipsoApp,next) {
+_calipso_module.route=function(req,res,module,calipsoApp,next) {
    module.router.route(req,res,next);
 }
 
-_module.init=function(module,calipsoApp,next) {
-   _module.module_name=module.name;
+_calipso_module.init=function(module,calipsoApp,next) {
+   _calipso_module.module_name=module.name;
    
    // TODO: Load app templates, which might be in separate directory.
    // The module executing this is actually our app i.e. 'this'.
@@ -40,8 +40,8 @@ _module.init=function(module,calipsoApp,next) {
       function defineRoutes() {
          var methods=['GET','POST','PUT','DELETE'];
          for(i in methods) {
-              var route=methods[i] +" "+ _module._baseUrl + "(/:subpath(*)?)?";
-              module.router.addRoute(route, _module.routeWrapper, app.routeOptions, this.parallel());
+              var route=methods[i] +" "+ _calipso_module._baseUrl + "(/:subpath(*)?)?";
+              module.router.addRoute(route, _calipso_module.routeWrapper, app.routeOptions, this.parallel());
          };
       },
       function done() {
@@ -77,7 +77,7 @@ function populateBlocks(req, res, blocks, options)
  */
 function appUrl()
 {
-   var url=_module._baseUrl;
+   var url=_calipso_module._baseUrl;
    for(i=0; i<arguments.length; i++) {
        url += arguments[i];
    }
@@ -125,7 +125,7 @@ function renderCompiledTemplate(self, tmpl, options)
   options.appUrl=appUrl; // Helper function.
   options.partial=partial; // Helper function.
 
-  var module_templates=calipso.modules[_module.module_name].templates;
+  var module_templates=calipso.modules[_calipso_module.module_name].templates;
   if( module_templates ) {
      var template=module_templates[tmpl];
      if (typeof template === "function") {
@@ -170,7 +170,7 @@ function renderSections(req, res, app_res, next)
   });
 }
 
-_module.routeWrapper=function(req, res, template, block, next) {
+_calipso_module.routeWrapper=function(req, res, template, block, next) {
 
           // Parse URL and get (prop, value) pairs. 
       var subpath=req.moduleParams.subpath || "";
@@ -246,12 +246,12 @@ _module.routeWrapper=function(req, res, template, block, next) {
 
      // 'this' is actually our app module.
      try {
-         _module._app.appRoute(app_req, app_res, function(err){
+         _calipso_module._app.appRoute(app_req, app_res, function(err){
               var redirect=app_res.hasRedirect();
               if(err) {
                    calipso.theme.renderItem(req, res, err, 'content', {}, next); 
               } else if ( redirect ) {
-                   res.redirect(_module._baseUrl + redirect);
+                   res.redirect(_calipso_module._baseUrl + redirect);
               } else {
                    res.layout=app_res.layout || 'main';
                    // populate all sections
@@ -261,7 +261,7 @@ _module.routeWrapper=function(req, res, template, block, next) {
               }
            });
     } catch (ex) {
-        err = "Module: "+_module.module_name + " Exception:" +  ex.toString();
+        err = "Module: "+_calipso_module.module_name + " Exception:" +  ex.toString();
         if (ex.message) err += "Message: " +ex.message;
         if (ex.stack) err += "Message: " +ex.stack;
         calipso.theme.renderItem(req, res, err, 'content', {}, next); 

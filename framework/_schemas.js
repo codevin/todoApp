@@ -1,10 +1,6 @@
 var path = require('path'),
     rootpath = process.cwd() + '/',
-    calipso = require(path.join(rootpath, "/lib/calipso")),
-    mongoose = require('mongoose'),
-    extend = require('mongoose-schema-extend');
-
-var Schema = mongoose.Schema;
+    calipso = require(path.join(rootpath, "/lib/calipso"));
 
 module.exports=schemas={}
 
@@ -16,10 +12,11 @@ module.exports=schemas={}
  *
  * Given a modelquery specification of canned queries, run the desired query and return the results.
  *
- * view_mq: Modelquery specification, see below.
- * session: Session parameters (key-value pairs)
- * params: URL Query parameters (key-value pairs)
- * view_props: Other parameters populated by view. (key-value pairs). 
+ * modelquery_specs: Model's supported modelqueries. See format below.
+ * view_mq: View's request of modelquery. See view_specs documentation.  
+ * args: Required for list of global models, and to generate params for the query.
+ *
+ * Params should be populated by view_mq's params function.
  *
  * Note: Modelqueries don't perform any validations (apart from what Mongoose can manage.). 
  *
@@ -37,35 +34,38 @@ module.exports=schemas={}
  * }
  *
  */
-schemas.modelquery_specs={};  // Populate this with all your model query specs, wherever they are defined from.. 
-schemas.generic_query = function(view_mq, session, params, view_props, next)
+schemas.generic_query = function(modelquery_specs, view_mq, args, next)
 {  
    // first process the override function from modelquery.
    var q={};
-   if (params) schemas.copy_fields(params, q); 
-   // create our own local structure for params. And params can be empty too.
 
-   if ( view_mq.overrideFn ) {
-      var overrides=view_mq.overrideFn(params, session, view_props); 
-      q=schemas.copy_fields(overrides, q);
+   // We expect params to be provided by view_mq's paramsFn.
+   if ( view_mq.paramsFn ) {
+      var overrides=view_mq.paramsFn(args.q, args.session, args.view_props) || {}; 
+      schemas.copy_fields(overrides, q);
    }
 
    // Canned queries fetched from specification in modelSupportedQuery.
-   var Model=mongoose.model(view_mq.model);
+   // Note: Our models should be registered within view_props during routing of request.
+   var Model=args.view_props.models[view_mq.model];
 
-   var supported_queries=schemas.modelquery_specs[view_mq.model];
+   var supported_queries=modelquery_specs[view_mq.model];
    // model's modelquery.
    var model_mq=supported_queries[view_mq.modelquery];
    if ( ! model_mq || ! model_mq.queryFn ) {
           next("model "+ view_mq.model + " doesn't have query or queryFn by this name: " + view_mq.modelquery);
           return;
    }
-   // Note: No checks are done here for parameter presence. It should have been done at
-   // view level.
-   var finalquery=model_mq.queryFn(q,session,view_props);
+   // Construct the query using specified queryFn. Note that we send in only q, which is expected to 
+   // have all the info.
+   var finalquery=model_mq.queryFn(q);
 
    if( ! finalquery ) {
-         next("Query function in query specification couldn't create a valid query:"+model_mq);
+         if( q['nullValid'] ) { 
+             next(null, null);
+         } else {
+             next("Query function in query specification couldn't create a valid query. query="+finalquery + " for model_mq:" + view_mq.modelquery);
+         }
    } else {
          Model[model_mq.method](finalquery, function(err, result) {
              next(err, result); 
@@ -74,7 +74,7 @@ schemas.generic_query = function(view_mq, session, params, view_props, next)
 }
 
 /*
- * generic_createOrUpdate(model, params, fields, function(err, entity){...}):
+ * generic_createOrUpdate(Model, params, fields, function(err, entity){...}):
  *
  * Fill the params and initiate creation of entity if didn't exist. Otherwise 
  * update it. 
@@ -97,59 +97,63 @@ schemas.generic_query = function(view_mq, session, params, view_props, next)
  *
  * 3. Update and entity when _id is provided, and included in dont_change_for_update. 
  */
-schemas.generic_createOrUpdate=function(model, params, fields, next) 
+schemas.generic_createOrUpdate=function(Model, params, fields, next) 
 {
-      var Model=mongoose.model(model);
       var required_fields_for_create=fields.required_for_create;
       var dontchange_fields_for_update=fields.dontchange_for_update;
       var persist_fields=fields.persist;
-      var step;
 
-      calipso.lib.step(
-        function() {  // Step 1: Verify fields and prepare final param list. 
-           step=this;
-           // createOrUpdate if id field is managed by backend.
-           if ( !params._id || required_fields_for_create[0] == 'id' ) {  
-                var required_fields_list=[];
-                required_fields_for_create.forEach(function(field) {
-                   if ( ! params[field] )  required_fields_list.push(field);
-                });
-                if ( required_fields_list.length > 0 )  {
-                   step("Creating model "+model+ ": Some of the required parameters to create the record are not present: " + required_fields_list);
-                   return;
-                }
-           } else { 
-                var dontchange_fields_list=null;
-                dont_change_fields_for_update.forEach(function(field) {
-                   // If field is _id, we treat it specially: It might be 'create' request, with assigned _id.
-                      if ( ! params[field] )  dontchange_fields_list=params[field] + " ";
-                });
-                if ( dontchange_fields_list )  {
-                   step("Updating model " +model+ "- Update can't change the fields:" + dontchange_field_list);
-                   return;
-                }
-           }
-           var v_params={};
+      var _id=params._id; if (_id && (_id=='' || _id == 'undefined')) delete params._id;
+
+      var createMe=false, updateMe=false, error=null;
+      if (required_fields_for_create[0] == '_id') {
+         // If so, both create and update require _id field. If it is missing, it is error.
+         if ( ! params[_id] ) {
+            error="The operation needs _id field because of _id is managed by your code."; 
+         } else updateMe=true; 
+      } else if (params['_id']) { 
+           updateMe=true;
+      } else {
+           createMe=true;
+      }
+      if( createMe ) { 
+          // Verify that required fields are present from required_fields_for_create.
+          var required_fields_list=[];
+          required_fields_for_create.forEach(function(field) {
+             if ( ! params[field] )  required_fields_list.push(field);
+          });
+          if ( required_fields_list.length > 0 )  {
+              error= "Creating model "+model+ ": Some of the required parameters to create the record are not present: " + required_fields_list;
+          }
+      } else if (updateMe) { 
+          // Verify that dont_change fiels are NOT present in params. 
+          var dontchange_fields_list=null;
+          dontchange_fields_for_update.forEach(function(field) {
+              if ( ! params[field] )  dontchange_fields_list=params[field] + " ";
+          });
+          if ( dontchange_fields_list )  {
+                 error="Updating model " +model+ "- Update can't change the fields:" + dontchange_field_list;
+          }
+     }
+     var v_params={};
+     if ( error ) {
+           next(error);
+     } else { 
            schemas.copy_fields(params, v_params, persist_fields); 
-           step(null, v_params);
-        },
-        function(err, v_params) { // Step 2: Create/update the entity.
-            if (err) {step(err); return; }
-            if( v_params._id ) {
-                Model.findbyIdAndUpdate(v_params._id, v_params, {upsert: true}, function(err, entity) { 
-                    step(err, entity);
+           if( updateMe ) { 
+                var _id=v_params._id; delete v_params._id;
+                Model.findByIdAndUpdate(_id, v_params, {upsert: true}, function(err, entity) { 
+                    next(err, entity);
                 });
-            } else {
+           } else if (createMe) { 
                 var entity=new Model(v_params);
                 entity.save(function(err, entity) { 
-                    step(err, entity);
+                    next(err, entity);
                 });
-            }
-        },
-        function done(err, entity) {
-              next(err, entity);
-        }
-     );
+           } else {
+                next("Please check your logic of genericCreateOrUpdate.");
+           }
+    }
 }
 
 /*
@@ -161,7 +165,6 @@ schemas.generic_createOrUpdate=function(model, params, fields, next)
 schemas.copy_fields=function(from, to, param_list)
 {
   if (!from || !to ) {
-      console.trace();
       throw "Error copy_fields with no from or to!!";
   }
   if ( param_list ) {

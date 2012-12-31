@@ -1,5 +1,6 @@
 var path = require('path'),
-    rootpath = process.cwd() + '/',
+    // rootpath = process.cwd() + '/',
+    rootpath = '../../../..',
     calipso = require(path.join(rootpath, "/lib/calipso"));
 
 
@@ -47,78 +48,82 @@ module.exports = views = {};
  * }
  *
  */
-views.view=function(self, view_specs, args, next) 
+views.view=function(self, view_specs, mq_specs, args, next) 
 {
    var step;
    args.view_specs=view_specs;
    args.step_loc="Start of view rendering.";
 
+   /* If err is due to throw by system, say for undefined variable, it is always the first param. 
+      The error handled by us will be second param. */
    calipso.lib.step(
        function() {     // First validate params.
            step=this;
            args.step_loc="Calling validate params.";
            views.helper_validate_params(args.view_specs.param_specs, args.view_specs.param_modifiers, args.params, args, function(err, q, q_preserved) {
                args.q_preserved=q_preserved; args.q=q;
-console.dir(args);
-               step(err, args); 
+               step(null, err, args); 
            });
        },
-       function(err, args) { // Intercepter, for use in specs.
+       function(sys_err, err, args) { // Intercepter, for use in specs.
+           if(sys_err) { step(sys_err); return; }
            if(!err) args.step_loc="Calling pre_modelquery_fn..";
-           if(args.view_specs.pre_modelquery_fn) {
+
+           // Initialize mq_results right away, if it is not already initialized.
+           args.mq_results=args.mq_results || {};
+
+           if(!err && args.view_specs.pre_modelquery_fn) {
                 // Note: next(err).  
-                view_specs.pre_modelquery_fn(err, args, function(err){ step(err, args); });
+                view_specs.pre_modelquery_fn(err, args, function(err){ step(null, err, args); });
            } else {
-                step(err, args); 
+                step(null, err, args); 
            }
        },
-       function(err, args) { // modelquery call. 
+       function(sys_err, err, args) { // modelquery call. 
+           if(sys_err) { step(sys_err); return; }
            if(!err) args.step_loc="Calling modelqueries..";
 
-           // If there is error, create empty model_results for next function. 
-           if( err ) { args.model_results={}; step(err, args); return; };
+           // If there is error, create empty mq_results for next function. 
+           if( err ) { step(null, err, args); return; };
 
-           views.helper_modelquery(args.view_specs.modelqueries, args, function(err, model_results) { 
-                                       args.model_results=model_results; 
-                                       step(err, args);
+           view_mq_list=args.view_specs.modelqueries || [];
+           views.helper_modelquery(mq_specs, view_mq_list, args, function(err, mq_results) { 
+                                       args.mq_results=mq_results; 
+                                       step(null, err, args);
                                    });
        },
-       function(err, args) { // pre_render_fn.
+       function(sys_err, err, args) { // pre_render_fn.
+           if(sys_err) { step(sys_err); return; }
            if(!err) args.step_loc="Calling pre_render_fn..";
-           if(args.view_specs.pre_render_fn) {
-               args.view_specs.pre_render_fn(err, args, function(err) { step(err, args); });
+           if(!err && args.view_specs.pre_render_fn) {
+               args.view_specs.pre_render_fn(err, args, function(err) { step(null, err, args); });
            } else {
-              step(err, args); 
+              step(null, err, args); 
            }
        }, 
-       function(err, args) {
-         if(err && args==null) {
-            // It is a exception throw. Handled by last function.
-            step(err); return; 
-         }
-         var results={err: err, err_loc:args.step_loc, q:args.q_preserved, q_modified:args.q, viewdata: args.model_results};
-         if ( args.view_specs.render_fn) {
+       function(sys_err, err, args) {
+           if(sys_err) { step(sys_err); return; }
+           // Variables populated for the template.
+           var results={err: err, err_loc:args.step_loc, q:args.q_preserved, q_modified:args.q, mq_results: args.mq_results};
+           if ( args.view_specs.render_fn) {
                args.step_loc="Calling render_fn ...";
                view_specs.render_fn(self, err, results, next);    
 
-         } else if ( args.view_specs.render_specs ) {         
+           } else if ( args.view_specs.render_specs ) {         
                args.step_loc="Calling render...";
                views.render(self, view_specs.render_specs, err, results, next);
-               // next was taken care of in render itself.
-         } else {
+
+           } else {
                // Just return the results if there is no render specs.
                args.step_loc="No rendering, Calling next() of view.";
-               if (next) next(err, results);
-         }
+               next(err, results);
+           }
        },
-       function (err) {
+       function (sys_err) {
          // If control comes here, it is usually because of throw within step.
-         if(err) {
-               console.log("System Error during view. err, args follow.");
-               console.dir(err);
-               console.dir(args);
-               views.render_error(self, "system error", err, "back", "Home: /");
-               self.next();
+         if(sys_err) {
+               views.render_error(self, "system error", sys_err, "back", "Home: /");
+               next();
          }
        }
    );
@@ -158,7 +163,7 @@ views.render=function(self, render_specs, error, results, next)
    if (error) {
        switch ( error_specs.response ) {
          case 'template': 
-         case 'error_in_template': 
+         case 'error': 
                    if(error_specs.error_in_template) {
                       if ( ! results ) results={};
                       results.error=error;
@@ -187,13 +192,11 @@ views.render=function(self, render_specs, error, results, next)
    } else {
         // Use success.
        if( success_specs.template ) { 
-console.dir("In render-template. template="+success_specs.template);
                    var template=success_specs.template;  // If defined. Otherwise remains null.
                    self.res.render(template, results);
                    next(null, results);
 
        } else  if( success_specs.redirect )  { 
-console.dir("In render-redirect. redirect="+success_specs.redirect);
                    do_redirect=success_specs.redirect;
                    self.res.redirect(do_redirect);
                    next(null, results);
@@ -215,7 +218,7 @@ console.dir("In render-redirect. redirect="+success_specs.redirect);
  * Special case: 'back' renders going to previous page.  (TODO).
  *
  */
-views.system_error_template='mm-warning-message';
+views.system_error_template='system-warning-message';
 views.render_error=function(self, level, message, nexturl1, nexturl2, nexturl3)
 {
    options={};
@@ -288,8 +291,8 @@ views.helper_validate_params=function(param_specs, param_modifiers, params, args
             schemas.copy_fields(overrideFn(args), q); 
       }
 
-      required_list=param_specs.required || {};
-      optional_list=param_specs.optional || {};
+      required_list=param_specs.required || []; 
+      optional_list=param_specs.optional || [];
 
           // Ensure that the param meets usual URL specs. 
           function verifyUrlparam(url) {
@@ -323,7 +326,7 @@ views.helper_validate_params=function(param_specs, param_modifiers, params, args
              if( (q[field]) && (q[field] != "") ) {
                    if (param_modifiers['decode_uri']) q[field]=decodeURIComponent(q[field]);
              } else {
-                   err+="Param "+ field + " is required to be present.\n";
+                   err+="Param '"+ field + "' is needs to be provided.\n";
              }
       });
       optional_list.forEach(function(field){
@@ -350,32 +353,29 @@ views.helper_validate_params=function(param_specs, param_modifiers, params, args
  * It may so happen that one query may depend on results of another. In that case, 
  * the view model should implement its own query handler.
  */
-views.helper_modelquery=function(modelquery_list, args, next) {
+views.helper_modelquery=function(mq_specs, mq_request_list, args, next) {
 
-             var modelquery_execute=function(args, mq, callback) {
+             var modelquery_execute=function(args, mq_specs, mq_requests, callback) {
+
                   // mq=modelquery, represents the context of query such as what is the query itself, what fields are required, result limit etc. So we pass the mq param as a whole.
-                  schemas.generic_query(mq, args.session, args.params, args.view_props, function(err, result) {
-                      var r={}; r.name=mq.output_name; r.result=result;
+                  schemas.generic_query(mq_specs, mq_requests, args, function(err, result) {
+                      var r={}; r.name=mq_requests.output_name; r.result=result;
                       callback('', {err: err, r:r}); // All errors handled by us.
                   });
              } 
 
         // async.apply creates continuation with some args already applied.
-        var mq_cont=calipso.lib.async.apply(modelquery_execute, args); 
-        calipso.lib.async.map(modelquery_list, mq_cont, 
+        var mq_cont=calipso.lib.async.apply(modelquery_execute, args, mq_specs); 
+        calipso.lib.async.map(mq_request_list, mq_cont, 
            function(err, resultArr) {
               // TODO: Handling multiple errors from more than one model queries. 
               var final_err="";  // Expected value is by design null.
-              var model_results={}; 
+              var mq_results={}; 
               resultArr.forEach(function(cb_result) {
-//console.log("Checking the error setting here: cb_result.err");
-//console.dir(cb_result.err);
                  cb_result.err ? final_err += "\nModelquery " + cb_result.r.name + " returned this error:  (Usually check the query specification in model spec.)\n" + cb_result.err :
-                          model_results[cb_result.r.name]=cb_result.r.result;
+                          mq_results[cb_result.r.name]=cb_result.r.result;
               });
-//console.log("Error after async modelrequests final_err follows:" + final_err);
-//console.dir(final_err);
-              next(final_err, model_results); 
+              next(final_err, mq_results); 
            }
         );
 }

@@ -2,7 +2,7 @@
   "name": "todoApp",
   "label": "Todo Sample App",
   "description": "Sample code for using calipso for building apps i.e. module-as-app.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "homepage": "http://www.calip.so/",
   "author": "Vinod Kulkarni (vinod.kulkarni@gmail.com)",
   "directories": {
@@ -10,8 +10,7 @@
   },
   "dependencies": {
     "director": "1.1.8",
-    "mongoose": "3.5.x",
-    "mongoose-schema-extend": "0.1.x"
+    "mongoose": "3.5.x"
   },
 }
 

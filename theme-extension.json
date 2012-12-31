@@ -13,7 +13,8 @@
             "header": {"template": "header.html"},
             "body": {"template": "body.html"},
             "sidebar": {"template": "sidebar.html"},
-            "footer": {"template": "footer.html"}
+            "footer": {"template": "footer.html"},
+            "message": {"template": "message.html"}
            },
            "modules": {
               "user": {

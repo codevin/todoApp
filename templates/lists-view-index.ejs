@@ -1,0 +1,37 @@
+<%
+  // Templates have access to these variables: q (params), q_modified (final params used), mq_results, 
+  // Also available are err and err_loc if you want to handle errors yourself.
+
+  // ==== Show all lists. And allow creation/edit of one list. ===
+  var lists=mq_results.lists;
+  var selected_list=mq_results.selected_list || {name:'', users:'', _id:''};
+
+%>
+
+<h2>Your Lists <small>// <%= q_modified.owner %></small> </h2>
+<hrule/>
+
+<!-- show selected list in the input windows -->
+<form class="form-search" action="<%= appUrl('/lists/post') %>" method="post" accept-charset="utf-8">
+<div class="row"><div class="span6">
+      <div>List name: </div> 
+      <input class="input-large" style="width: 100px;" type="text" name="name" value="<%= selected_list.name %>" placeholder="Add a new list ..."/> 
+</div></div>
+<div class="row"><div class="span6">
+      <div>List Users: </div> 
+      <input class="input-large" style="width: 350px;" type="text" name="users" value="<%= selected_list.users %>" placeholder="Add users (comma separated ...)"/>
+</div></div>
+
+      <input type="hidden" name="_id" value="<%= selected_list._id %>"/>
+
+<div class="row"><div class="span6">
+      <button class="btn" type="text">Add</button>&nbsp;
+      <a href="<%= appUrl('/lists') %>">Refresh</a>
+</div></div>
+</form>
+
+<% lists.forEach( function(listitem){ %>
+    <%- partial('lists-partial-listitem', {listitem:listitem, url_href:appUrl('/lists/id/', listitem._id)} ) %>
+<% } ); %>
+
+

@@ -65,12 +65,12 @@ Example:
            param_specs: { 
                      required: ['url', 'title'], 
                      optional: ['description', 'topic', 'topicname'],
-                     overrideFn: function(q, session, view_vars) { 
+                     overrideFn: function(args) { 
                                    return {
-                                     '_owner': session.user_id,
+                                     '_owner': args.session.user_id,
                                      '_required_params_for_post': ['url', 'title'], 
                                              // For use in template, typically do client-side check.
-                                     '_action_url': view_vars._action_url
+                                     '_action_url': args.view_props._action_url
                                    }; }, 
                      default:{} 
                    },
@@ -167,4 +167,15 @@ Example:
                error: { response: 'template', template: 'mm-form-bookmark'}
            }
 
-## Methods and Parameters Specification
+## Variables available in templates
+
+Viewspecs allow you to name the results of the modelqueries. The templates receive 'result' object, which contains: 
+
+viewdata: All the modelqueries populate this structure. For e.g. if one of the modelqueries populates 'entries', then it is accessible using viewdata.entries in the template.
+
+q: The original GET parameters sent via URL.
+
+q_modified: The modified and added/removed list of parameters during the functionality.
+
+
+ 
